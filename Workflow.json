@@ -92,31 +92,6 @@
     },
     {
       "parameters": {
-        "fromEmail": "samircabrera2528@gmail.com",
-        "toEmail": "samircabreratab@gmail.com",
-        "subject": "=Approval Required: {{ $json.account_name }}",
-        "emailFormat": "=html",
-        "html": "=<h2>New Transcript for Review</h2>\n\n<p><b>Company:</b> {{ $json.account_name }}</p>\n<p><b>Contact:</b> {{ $json.contact_name }}</p>\n<p><b>Summary:</b> {{ $json.summary }}</p>\n<p><b>Action Items:</b> {{ $json.action_items.join(', ') }}</p>\n<p><b>Order Intent:</b> {{ $json.order_intent ?? 'N/A' }}</p>\n\n<br>\n<a href=\"{{ $execution.resumeUrl }}&approved=true\" \n   style=\"background:green;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;\">\n   ✅ APPROVE\n</a>\n&nbsp;&nbsp;\n<a href=\"{{ $execution.resumeUrl }}&approved=false\"\n   style=\"background:red;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;\">\n   ❌ REJECT\n</a>\n",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2.1,
-      "position": [
-        896,
-        48
-      ],
-      "id": "0632a9ae-5520-4729-8a26-7eb497b4a20a",
-      "name": "Send an Email",
-      "webhookId": "3b3027af-6128-4cb6-889b-d4f6205a574f",
-      "credentials": {
-        "smtp": {
-          "id": "F7oiQvo8RC9dJppB",
-          "name": "SMTP account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "resume": "webhook",
         "options": {}
       },
@@ -129,30 +104,6 @@
       "id": "fe1f2ea3-98a0-489b-8b07-3426dbe93266",
       "name": "Wait",
       "webhookId": "82200bc9-768a-499a-8c1a-05db3fc7f1e0"
-    },
-    {
-      "parameters": {
-        "fromEmail": "samircabrera2528@gmail.com",
-        "toEmail": "samircabreratab@gmail.com",
-        "subject": "Insufficient Data: Transcript Could Not Be Processed",
-        "html": "=<h2>⚠️ Insufficient Data</h2>\n\n<p>The transcript could not be processed because one or more required fields are missing.</p>\n\n<p><b>Missing fields:</b> {{ $json.missing_fields.join(', ') }}</p>\n\n<p><b>Original transcript:</b></p>\n<p>{{ $json.body?.transcript ?? 'Not available' }}</p>\n\n<p>Please follow up manually to obtain the company name and contact name.</p>\n",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2.1,
-      "position": [
-        896,
-        -144
-      ],
-      "id": "19ec3223-a1c3-4c69-b9f7-104d5d56270e",
-      "name": "Send an Email1",
-      "webhookId": "9ba1449b-41d5-4074-b2e3-9bd4197f1c9f",
-      "credentials": {
-        "smtp": {
-          "id": "F7oiQvo8RC9dJppB",
-          "name": "SMTP account"
-        }
-      }
     },
     {
       "parameters": {
@@ -224,7 +175,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const data = $('Extract LLM Format').item.json;\nconst transcript = $('Webhook').item.json.body.transcript.replace(/'/g, \"''\");\nconst accountName = data.account_name.replace(/'/g, \"''\");\nconst contactName = data.contact_name.replace(/'/g, \"''\");\nconst summary = (data.summary || '').replace(/'/g, \"''\");\nconst orderIntent = (data.order_intent && typeof data.order_intent === 'string')\n  ? `'\"${data.order_intent.replace(/'/g, \"''\").replace(/\"/g, '\\\\\"')}\"'::jsonb`\n  : 'NULL';\nconst actionItems = JSON.stringify(data.action_items);\nconst missingFields = JSON.stringify(data.missing_fields);\nconst reviewedBy = $('Send an Email').first().json.accepted[0];\nconst extractionModel = $('HTTP Request').first().json.model;\n\nconst query = `INSERT INTO sales.call_records (\n  account_name,\n  contact_name,\n  summary,\n  action_items,\n  order_intent,\n  missing_fields,\n  needs_followup,\n  review_status,\n  reviewed_by,\n  raw_transcript,\n  extraction_model\n) VALUES (\n  '${accountName}',\n  '${contactName}',\n  '${summary}',\n  '${actionItems}'::jsonb,\n  ${orderIntent},\n  '${missingFields}'::jsonb,\n  ${data.needs_followup},\n  'approved',\n  '${reviewedBy}',\n  '${transcript}',\n  '${extractionModel}'\n)`;\n\nreturn [{ json: { query } }];\n"
+        "jsCode": "const data = $('Extract LLM Format').item.json;\nconst transcript = $('Webhook').item.json.body.transcript.replace(/'/g, \"''\");\nconst accountName = data.account_name.replace(/'/g, \"''\");\nconst contactName = data.contact_name.replace(/'/g, \"''\");\nconst summary = (data.summary || '').replace(/'/g, \"''\");\nconst orderIntent = (data.order_intent && typeof data.order_intent === 'string')\n  ? `'\"${data.order_intent.replace(/'/g, \"''\").replace(/\"/g, '\\\\\"')}\"'::jsonb`\n  : 'NULL';\nconst actionItems = JSON.stringify(data.action_items);\nconst missingFields = JSON.stringify(data.missing_fields);\nconst reviewedBy = $('Send an Email - Approval Form').first().json.accepted[0];\nconst extractionModel = $('HTTP Request').first().json.model;\n\nconst query = `INSERT INTO sales.call_records (\n  account_name,\n  contact_name,\n  summary,\n  action_items,\n  order_intent,\n  missing_fields,\n  needs_followup,\n  review_status,\n  reviewed_by,\n  raw_transcript,\n  extraction_model\n) VALUES (\n  '${accountName}',\n  '${contactName}',\n  '${summary}',\n  '${actionItems}'::jsonb,\n  ${orderIntent},\n  '${missingFields}'::jsonb,\n  ${data.needs_followup},\n  'approved',\n  '${reviewedBy}',\n  '${transcript}',\n  '${extractionModel}'\n)`;\n\nreturn [{ json: { query } }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -269,7 +220,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "position": [
         848,
-        208
+        224
       ],
       "typeVersion": 1,
       "id": "92f2113c-dd06-4529-81ef-aa8c62b028de",
@@ -338,6 +289,55 @@
       ],
       "id": "076f3fad-5c2a-42f3-9998-f2cf0c2b81a0",
       "name": "Respond to Webhook - Succesfull Run"
+    },
+    {
+      "parameters": {
+        "fromEmail": "samircabrera2528@gmail.com",
+        "toEmail": "samircabreratab@gmail.com",
+        "subject": "Insufficient Data: Transcript Could Not Be Processed",
+        "html": "=<h2>⚠️ Insufficient Data</h2>\n\n<p>The transcript could not be processed because one or more required fields are missing.</p>\n\n<p><b>Missing fields:</b> {{ $json.missing_fields.join(', ') }}</p>\n\n<p><b>Original transcript:</b></p>\n<p>{{ $json.body?.transcript ?? 'Not available' }}</p>\n\n<p>Please follow up manually to obtain the company name and contact name.</p>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        896,
+        -144
+      ],
+      "id": "19ec3223-a1c3-4c69-b9f7-104d5d56270e",
+      "name": "Send an Email - Missing Data",
+      "webhookId": "9ba1449b-41d5-4074-b2e3-9bd4197f1c9f",
+      "credentials": {
+        "smtp": {
+          "id": "F7oiQvo8RC9dJppB",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "samircabrera2528@gmail.com",
+        "toEmail": "samircabreratab@gmail.com",
+        "subject": "=Approval Required: {{ $json.account_name }}",
+        "emailFormat": "=html",
+        "html": "=<h2>New Transcript for Review</h2>\n\n<p><b>Company:</b> {{ $json.account_name }}</p>\n<p><b>Contact:</b> {{ $json.contact_name }}</p>\n<p><b>Summary:</b> {{ $json.summary }}</p>\n<p><b>Action Items:</b> {{ $json.action_items.join(', ') }}</p>\n<p><b>Order Intent:</b> {{ $json.order_intent ?? 'N/A' }}</p>\n\n<br>\n<a href=\"{{ $execution.resumeUrl }}&approved=true\" \n   style=\"background:green;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;\">\n   ✅ APPROVE\n</a>\n&nbsp;&nbsp;\n<a href=\"{{ $execution.resumeUrl }}&approved=false\"\n   style=\"background:red;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;\">\n   ❌ REJECT\n</a>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        896,
+        48
+      ],
+      "id": "0632a9ae-5520-4729-8a26-7eb497b4a20a",
+      "name": "Send an Email - Approval Form",
+      "webhookId": "3b3027af-6128-4cb6-889b-d4f6205a574f",
+      "credentials": {
+        "smtp": {
+          "id": "F7oiQvo8RC9dJppB",
+          "name": "SMTP account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -368,36 +368,14 @@
       "main": [
         [
           {
-            "node": "Send an Email1",
+            "node": "Send an Email - Missing Data",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Send an Email",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send an Email": {
-      "main": [
-        [
-          {
-            "node": "Wait",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send an Email1": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook - Missing Data",
+            "node": "Send an Email - Approval Form",
             "type": "main",
             "index": 0
           }
@@ -465,6 +443,28 @@
           }
         ]
       ]
+    },
+    "Send an Email - Missing Data": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook - Missing Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an Email - Approval Form": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -473,7 +473,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "9432aa16-b9a7-41da-b925-0bbf5be02b67",
+  "versionId": "7a852b51-b743-49f1-9e93-a20082eea7b3",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "34bcdfafa76be5ee809a64942a4fd9128d2411ae3a5a5d12735c52bffa31cea9"

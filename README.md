@@ -10,8 +10,9 @@ A sales call transcript is submitted to the system. A local AI model (`llama3.2:
 
 To avoid paid subscriptions during this trial, everything runs locally via Docker — the workflow engine (n8n), the AI model (Ollama), and the database (PostgreSQL). No external APIs, no cloud accounts needed.
 
-Migrating to a cloud setup when ready would be straightforward: swap Ollama for any hosted model API (OpenAI, Anthropic, etc.) and point the database to a managed PostgreSQL instance. The workflow logic stays the same.
+Migrating to a cloud setup when ready is straightforward: swap Ollama for any hosted model API (OpenAI, Anthropic, etc.) and point the database to a managed PostgreSQL instance. The workflow logic stays the same.
 
-## Getting started
+## Documentation
 
-See [docs/technical.md](docs/technical.md) for setup instructions.
+- [Setup guide](docs/technical.md) — how to run the project, configure credentials, and test it
+- [Project structure](docs/project-structure.md) — what every file in this repo does, including the Postman collection
