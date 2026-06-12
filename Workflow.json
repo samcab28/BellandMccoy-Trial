@@ -1,0 +1,484 @@
+{
+  "name": "Bell and Mccoy Trial",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sales-transcript",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        -48
+      ],
+      "id": "1abe2755-6c20-4a7c-99b1-9849092a9a5f",
+      "name": "Webhook",
+      "webhookId": "8a463df6-0c95-4f96-a765-c7dac40f7c24"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"model\": \"llama3.2:3b\",\n    \"stream\": false,\n    \"format\": \"json\",\n    \"messages\": [\n        {\n            \"role\": \"system\",\n            \"content\": \"You are a data extraction assistant. Extract fields from sales call transcripts and return ONLY valid JSON, no explanation, no markdown.\"\n        },\n        {\n            \"role\": \"user\",\n            \"content\": \"Extract these fields from the sales call transcript below.\\n\\nSTRICT RULES:\\n- Return ONLY a raw JSON object, no explanation, no markdown\\n- account_name: a BUSINESS or COMPANY name (e.g. 'Brightline Electric', 'ABC Corp'). A person's first name like 'Danny' is NEVER a company. If no business name is mentioned, return null\\n- contact_name: the caller or customer's personal name (e.g. 'Danny', 'Marcus'). If not mentioned, return null\\n- summary: 2-3 sentences describing what was discussed. If too vague, return null\\n- action_items: concrete next steps mentioned. Empty array [] if none\\n- order_intent: specific products, quantities or pricing discussed. null if none\\n- missing_fields: list the names of fields you set to null\\n- order_intent: a plain text description of products, quantities or pricing (e.g. '40 wireless dimmers and 40 wall stations, quote requested'). NEVER return an object or JSON, only a simple string or null\\n- needs_followup: true if critical info is missing or caller was vague\\n\\nTranscript:\\n{{ $json.body.transcript }}\"\n        }\n    ]\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        -48
+      ],
+      "id": "74accfdc-5d0e-4876-b96b-07cb18a21a91",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "72a6a8ca-7d94-4b8f-9975-796f07f0f378",
+              "leftValue": "={{ $json.account_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "f1c78bff-5278-4f0a-b0e7-9cb511c35604",
+              "leftValue": "= {{ $json.contact_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "3414549a-aa5b-46b7-bf6d-08e54764ba96",
+              "leftValue": "={{ $json.account_name }}",
+              "rightValue": "={{ $json.contact_name }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        -48
+      ],
+      "id": "e05c2f7e-f7a2-4432-96e3-56faad9b0d25",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "fromEmail": "samircabrera2528@gmail.com",
+        "toEmail": "samircabreratab@gmail.com",
+        "subject": "=Approval Required: {{ $json.account_name }}",
+        "emailFormat": "=html",
+        "html": "=<h2>New Transcript for Review</h2>\n\n<p><b>Company:</b> {{ $json.account_name }}</p>\n<p><b>Contact:</b> {{ $json.contact_name }}</p>\n<p><b>Summary:</b> {{ $json.summary }}</p>\n<p><b>Action Items:</b> {{ $json.action_items.join(', ') }}</p>\n<p><b>Order Intent:</b> {{ $json.order_intent ?? 'N/A' }}</p>\n\n<br>\n<a href=\"{{ $execution.resumeUrl }}&approved=true\" \n   style=\"background:green;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;\">\n   ✅ APPROVE\n</a>\n&nbsp;&nbsp;\n<a href=\"{{ $execution.resumeUrl }}&approved=false\"\n   style=\"background:red;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;\">\n   ❌ REJECT\n</a>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        896,
+        48
+      ],
+      "id": "0632a9ae-5520-4729-8a26-7eb497b4a20a",
+      "name": "Send an Email",
+      "webhookId": "3b3027af-6128-4cb6-889b-d4f6205a574f",
+      "credentials": {
+        "smtp": {
+          "id": "F7oiQvo8RC9dJppB",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        48
+      ],
+      "id": "fe1f2ea3-98a0-489b-8b07-3426dbe93266",
+      "name": "Wait",
+      "webhookId": "82200bc9-768a-499a-8c1a-05db3fc7f1e0"
+    },
+    {
+      "parameters": {
+        "fromEmail": "samircabrera2528@gmail.com",
+        "toEmail": "samircabreratab@gmail.com",
+        "subject": "Insufficient Data: Transcript Could Not Be Processed",
+        "html": "=<h2>⚠️ Insufficient Data</h2>\n\n<p>The transcript could not be processed because one or more required fields are missing.</p>\n\n<p><b>Missing fields:</b> {{ $json.missing_fields.join(', ') }}</p>\n\n<p><b>Original transcript:</b></p>\n<p>{{ $json.body?.transcript ?? 'Not available' }}</p>\n\n<p>Please follow up manually to obtain the company name and contact name.</p>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        896,
+        -144
+      ],
+      "id": "19ec3223-a1c3-4c69-b9f7-104d5d56270e",
+      "name": "Send an Email1",
+      "webhookId": "9ba1449b-41d5-4074-b2e3-9bd4197f1c9f",
+      "credentials": {
+        "smtp": {
+          "id": "F7oiQvo8RC9dJppB",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "94c10485-422b-4ed1-9cde-26448c21bace",
+              "leftValue": "={{ $json.query.approved }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1344,
+        48
+      ],
+      "id": "95fe99b9-c79f-4c22-9f0d-ba586357aa0d",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.query }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1792,
+        144
+      ],
+      "id": "7d163440-bcc0-4894-9e9c-921a7e1bc0b1",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "MDujGVkQHyqdzT37",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.first().json.message.content;\nconst parsed = JSON.parse(content);\n\n// Normalize order_intent to readable string or null\nif (parsed.order_intent && typeof parsed.order_intent === 'object') {\n  const items = parsed.order_intent.product_quantities;\n  if (items && Array.isArray(items)) {\n    parsed.order_intent = items.map(i => `${i.quantity} ${i.product}`).join(', ');\n  } else {\n    parsed.order_intent = JSON.stringify(parsed.order_intent);\n  }\n}\n\nreturn [{ \n  json: {\n    ...parsed,\n    action_items_json: JSON.stringify(parsed.action_items),\n    missing_fields_json: JSON.stringify(parsed.missing_fields)\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        -48
+      ],
+      "id": "52e79716-6b60-4c0d-9c93-8bc61263b607",
+      "name": "Extract LLM Format"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Extract LLM Format').item.json;\nconst transcript = $('Webhook').item.json.body.transcript.replace(/'/g, \"''\");\nconst accountName = data.account_name.replace(/'/g, \"''\");\nconst contactName = data.contact_name.replace(/'/g, \"''\");\nconst summary = (data.summary || '').replace(/'/g, \"''\");\nconst orderIntent = (data.order_intent && typeof data.order_intent === 'string')\n  ? `'\"${data.order_intent.replace(/'/g, \"''\").replace(/\"/g, '\\\\\"')}\"'::jsonb`\n  : 'NULL';\nconst actionItems = JSON.stringify(data.action_items);\nconst missingFields = JSON.stringify(data.missing_fields);\nconst reviewedBy = $('Send an Email').first().json.accepted[0];\nconst extractionModel = $('HTTP Request').first().json.model;\n\nconst query = `INSERT INTO sales.call_records (\n  account_name,\n  contact_name,\n  summary,\n  action_items,\n  order_intent,\n  missing_fields,\n  needs_followup,\n  review_status,\n  reviewed_by,\n  raw_transcript,\n  extraction_model\n) VALUES (\n  '${accountName}',\n  '${contactName}',\n  '${summary}',\n  '${actionItems}'::jsonb,\n  ${orderIntent},\n  '${missingFields}'::jsonb,\n  ${data.needs_followup},\n  'approved',\n  '${reviewedBy}',\n  '${transcript}',\n  '${extractionModel}'\n)`;\n\nreturn [{ json: { query } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        144
+      ],
+      "id": "05269bf2-cd96-4f29-8e0b-2decfe411832",
+      "name": "Query Builder"
+    },
+    {
+      "parameters": {
+        "content": "Entry point. Receives POST with { \"transcript\": \"...\" }\nProduction URL: /webhook/sales-transcript\n"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -64,
+        -240
+      ],
+      "typeVersion": 1,
+      "id": "d6a11e6f-358e-446a-b0e0-f7d0eaa56147",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Extracts 6 fields using llama3.2:3b running locally via Docker.\nReturns JSON with account_name, contact_name, summary,\naction_items, order_intent, missing_fields, needs_followup.\n",
+        "height": 240
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        160,
+        112
+      ],
+      "typeVersion": 1,
+      "id": "0b192da1-1665-44a7-87c0-4fe2a53dc865",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Sends approval email with extracted fields.\nIncludes APPROVE and REJECT links that resume the workflow.\n"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        848,
+        208
+      ],
+      "typeVersion": 1,
+      "id": "92f2113c-dd06-4529-81ef-aa8c62b028de",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "Builds parameterized INSERT in JS to safely handle JSONB fields.\nWrites to sales.call_records in schema \"sales\".\n"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1744,
+        320
+      ],
+      "typeVersion": 1,
+      "id": "bc31fbeb-81b1-4bec-b550-c4c0d41e7f99",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"error\",\n  \"message\": \"Insufficient data: company name and contact name are required to save the record.\"\n}\n",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        -144
+      ],
+      "id": "2368fec7-a329-4d2c-8f50-66de795c713d",
+      "name": "Respond to Webhook - Missing Data"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\": \"rejected\", \"message\": \"Record was rejected and not saved.\"}\n",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1568,
+        -48
+      ],
+      "id": "876bc1cc-9e6e-4804-82d7-daf57af2b69a",
+      "name": "Respond to Webhook - Permission Declined"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\": \"approved\", \"message\": \"Record saved successfully.\"}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2016,
+        144
+      ],
+      "id": "076f3fad-5c2a-42f3-9998-f2cf0c2b81a0",
+      "name": "Respond to Webhook - Succesfull Run"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Extract LLM Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send an Email1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an Email": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an Email1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook - Missing Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Query Builder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook - Permission Declined",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook - Succesfull Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract LLM Format": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Builder": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "9432aa16-b9a7-41da-b925-0bbf5be02b67",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "34bcdfafa76be5ee809a64942a4fd9128d2411ae3a5a5d12735c52bffa31cea9"
+  },
+  "nodeGroups": [],
+  "id": "vVozPf5ni0qKv5rb",
+  "tags": []
+}

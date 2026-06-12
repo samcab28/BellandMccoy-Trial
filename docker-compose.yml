@@ -1,0 +1,163 @@
+# =============================================================================
+# bellandmccoy-trial — Local automation stack
+# -----------------------------------------------------------------------------
+# Services:
+#   - postgres : System of record + n8n's own state persistence
+#   - ollama   : Local LLM runtime (zero-cost extraction, no external API)
+#   - n8n      : Workflow orchestration engine
+#
+# Design decisions:
+#   - Secrets are injected via the .env file, never hard-coded here.
+#   - Two segmented networks: only n8n needs to reach ollama; the public-facing
+#     edge (n8n) is isolated from the data tier where possible.
+#   - All stateful data lives in named volumes so `docker compose down` is safe.
+#   - Healthchecks gate startup ordering via `depends_on: condition`.
+# =============================================================================
+
+name: bellandmccoy-trial
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — durable store for both n8n internals and the business record.
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: bmc-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Keeps initdb deterministic across host locales.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Idempotent bootstrap: schema for the sales-call records table.
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+    networks:
+      - data-tier
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # Postgres is never exposed to the host by default. Uncomment only if you
+    # need to inspect it with an external client (psql, DBeaver, etc.).
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  # ---------------------------------------------------------------------------
+  # Ollama — lightweight local model server. The companion `ollama-pull`
+  # service (below) pulls the model once at startup so n8n never races a
+  # cold model.
+  # ---------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: bmc-ollama
+    restart: unless-stopped
+    environment:
+      # Unload the model from memory after 5m idle to keep RAM footprint low.
+      OLLAMA_KEEP_ALIVE: "5m"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - ai-tier
+    healthcheck:
+      # `ollama list` exits 0 once the server is accepting connections.
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    # Expose locally only if you want to curl the model directly for debugging.
+    ports:
+      - "127.0.0.1:11434:11434"
+
+  # ---------------------------------------------------------------------------
+  # ollama-pull — one-shot init container. Pulls the model, then exits 0.
+  # n8n waits for this to complete so the very first workflow run has a model.
+  # ---------------------------------------------------------------------------
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: bmc-ollama-pull
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: "http://ollama:11434"
+    networks:
+      - ai-tier
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "ollama pull ${OLLAMA_MODEL} && echo 'Model ${OLLAMA_MODEL} ready.'"
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # n8n — orchestration engine. Persists to Postgres (not SQLite) so state
+  # survives container replacement and matches a production posture.
+  # ---------------------------------------------------------------------------
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: bmc-n8n
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
+    environment:
+      # --- Persistence: use Postgres instead of the default SQLite ----------
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      # --- Security ---------------------------------------------------------
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_SECURE_COOKIE: "false"   # OK for localhost; set true behind HTTPS.
+      # --- Networking / webhooks -------------------------------------------
+      N8N_HOST: ${N8N_HOST}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      # WEBHOOK_URL must be the URL reachable by your browser / approver.
+      # For pure-local use this is fine. Override in .env if tunnelling.
+      WEBHOOK_URL: ${WEBHOOK_URL}
+      N8N_RUNNERS_ENABLED: "true"
+      # --- Convenience for this trial --------------------------------------
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE}
+      OLLAMA_MODEL: ${OLLAMA_MODEL}
+      N8N_HIDE_USAGE_PAGE: "true"
+    ports:
+      - "127.0.0.1:5678:5678"
+    volumes:
+      - n8n-data:/home/node/.n8n
+    networks:
+      - data-tier   # to reach postgres
+      - ai-tier     # to reach ollama
+
+# -----------------------------------------------------------------------------
+# Named volumes — survive `down`, removed only with `down -v`.
+# -----------------------------------------------------------------------------
+volumes:
+  postgres-data:
+    name: bmc-postgres-data
+  ollama-data:
+    name: bmc-ollama-data
+  n8n-data:
+    name: bmc-n8n-data
+
+# -----------------------------------------------------------------------------
+# Segmented networks — least-privilege connectivity between tiers.
+#   data-tier : n8n <-> postgres
+#   ai-tier   : n8n <-> ollama <-> ollama-pull
+# Postgres and Ollama cannot reach each other; n8n is the only bridge.
+# -----------------------------------------------------------------------------
+networks:
+  data-tier:
+    name: bmc-data-tier
+    driver: bridge
+  ai-tier:
+    name: bmc-ai-tier
+    driver: bridge

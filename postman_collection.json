@@ -1,0 +1,88 @@
+{
+  "info": {
+    "name": "BellMcCoy - Sales Transcript Automation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Clean transcript - Brightline Electric",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transcript\": \"Rep: Thanks for hopping on, Marcus. So you are with Brightline Electric in Dallas, right? Marcus: Thats right. We are bidding the Riverside office retrofit and we need Lutron controls, looking at about 40 of the wireless dimmers and the matching wall stations. Rep: Got it. Quantity 40 dimmers, 40 wall stations. Any timeline? Marcus: We need the quote by end of week, and product on site within four weeks if we win the bid. Rep: Perfect. I will get you a quote by Thursday and confirm lead times. Anything else? Marcus: Yeah, can you also send the spec sheets for the occupancy sensors? We might add those. Rep: Will do. I will send the quote, lead times, and the occupancy sensor specs.\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5678/webhook/sales-transcript",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5678",
+          "path": ["webhook", "sales-transcript"]
+        }
+      }
+    },
+    {
+      "name": "Clean transcript - Apex Construction",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transcript\": \"Rep: Good morning, this is sales. How can I help you? Sarah: Hi, I am Sarah Nguyen from Apex Construction in Austin. We are working on a commercial build in downtown and need to spec out lighting controls for 12 conference rooms. Rep: Sure, what system are you looking at? Sarah: We are thinking Lutron Quantum, maybe 60 keypads and the corresponding dimmers. We need pricing by Friday for a bid we are submitting. Rep: Got it, 60 keypads and 60 dimmers, Quantum system. I will get you a formal quote by Thursday EOD. Sarah: Perfect. Also, can you confirm lead times? We break ground in 8 weeks. Rep: I will include lead times in the quote. Anything else? Sarah: That covers it for now, thank you.\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5678/webhook/sales-transcript",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5678",
+          "path": ["webhook", "sales-transcript"]
+        }
+      }
+    },
+    {
+      "name": "Messy transcript - Danny (no company)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transcript\": \"Caller: yeah so we talked last month I think? About the thing for the gym project. Anyway the GC is pushing us and I dont have the part numbers in front of me but its the same stuff as the school job, you know the ones. Can you just do what you did before? Oh and pricing was an issue last time, the boss said it was too high. Call me back, Im in and out today. Its Danny. You have my number.\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5678/webhook/sales-transcript",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5678",
+          "path": ["webhook", "sales-transcript"]
+        }
+      }
+    },
+    {
+      "name": "Messy transcript - no name, no company",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transcript\": \"Caller: Hi yeah I was calling about the stuff we discussed. The project is moving forward but we need a better price. The last quote was too high and my boss rejected it. I think we need like 20 or 30 units, same model as before. Call me back when you can, I am hard to reach but I will try to pick up. Thanks.\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5678/webhook/sales-transcript",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5678",
+          "path": ["webhook", "sales-transcript"]
+        }
+      }
+    }
+  ]
+}
