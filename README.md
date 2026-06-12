@@ -12,6 +12,20 @@ To avoid paid subscriptions during this trial, everything runs locally via Docke
 
 Migrating to a cloud setup when ready is straightforward: swap Ollama for any hosted model API (OpenAI, Anthropic, etc.) and point the database to a managed PostgreSQL instance. The workflow logic stays the same.
 
+## Demo
+
+Watch a walkthrough of the system here: [YouTube — Bell & McCoy Sales Automation Demo](https://youtu.be/hCnpcf5s9Zk)
+
+_(Sorry for not using Loom — I ran into issues with that software on my computer.)_
+
+## Workflow overview
+
+![n8n workflow screenshot](images/Worflow-reference.jpg)
+
+## AI model
+
+Transcript extraction is handled by [`llama3.2:3b`](https://ollama.com/library/llama3.2:3b) running locally via Ollama. No external API keys required.
+
 ## Documentation
 
 - [Setup guide](docs/technical.md) — how to run the project, configure credentials, and test it
